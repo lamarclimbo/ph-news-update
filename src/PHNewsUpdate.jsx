@@ -17,7 +17,15 @@ const BRAND = {
   name: "PH News Update",
   tagline: "Real stories. Real time.",
   domain: "https://ph-news-update-now.vercel.app",
-  logoText: "PH",
+  logoText: // ...inside your <header> or top nav brand link
+<a href="/" className="flex items-center gap-2">
+  <img
+    src="/logo.jpg"            // <-- your file in /public
+    alt="PH News Update"
+    className="h-10 w-auto"     // tweak height to fit your navbar
+  />
+  <span className="text-lg font-semibold tracking-tight">PH News Update</span>
+</a>,
   primaryCategories: ["Top", "Nation", "Metro", "Business", "World", "Sports", "Tech", "Showbiz", "Saved"],
 };
 
