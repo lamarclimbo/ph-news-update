@@ -3,14 +3,11 @@ import { Menu, Search, Moon, SunMedium, Share2, Flame, Newspaper, TrendingUp, Cl
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * PH News Update — Single‑Page React Site (enhanced)
- * --------------------------------------------------------
- * ✅ Live feed ready (fetches /api/articles when present)
- * ✅ Bookmarks (Saved) via localStorage
- * ✅ Dismissible Breaking banner
- * ✅ Load more pagination
- * ✅ Newsletter form wired to Buttondown
- * ✅ Dark mode, SEO JSON‑LD, share links, clean Tailwind UI
+ * PH News Update — Client polish
+ * - Fixed timeAgo (no negative values; clamps future to "just now")
+ * - Auto-dismiss breaking banner after 2h
+ * - Smarter Trending builder from live titles
+ * - Saved tab shows count
  */
 
 // ------------------------------
@@ -92,7 +89,7 @@ const SAMPLE_ARTICLES = [
   },
 ];
 
-// Simulated trending strings (replace with your live feed)
+// Simulated trending strings fallback
 const SAMPLE_TRENDING = [
   "#FuelPrices", "#UAAPFinals", "#WeatherWatch", "#Forex", "#CommuterAlert", "#Employment", "#TechLaunch",
 ];
@@ -102,9 +99,12 @@ const SAMPLE_TRENDING = [
 // ------------------------------
 const classNames = (...arr) => arr.filter(Boolean).join(" ");
 
+// Clamp future/bad dates to now
 function timeAgo(iso) {
-  const d = new Date(iso);
-  const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+  const t = new Date(iso).getTime();
+  const now = Date.now();
+  if (!Number.isFinite(t) || t > now) return "just now";
+  const diff = Math.floor((now - t) / 1000);
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -138,20 +138,20 @@ export default function PHNewsUpdate() {
   const [articles, setArticles] = useState(SAMPLE_ARTICLES);
   const [trending, setTrending] = useState(SAMPLE_TRENDING);
 
-  // NEW: bookmarks (Saved)
+  // bookmarks
   const [saved, setSaved] = useState(() => {
     try { return JSON.parse(localStorage.getItem("phnews:saved") || "[]"); } catch { return []; }
   });
   useEffect(() => { localStorage.setItem("phnews:saved", JSON.stringify(saved)); }, [saved]);
   const toggleSave = (id) => setSaved((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
 
-  // NEW: Breaking banner (set to null to hide by default)
+  // Breaking banner (null to hide)
   const [breaking, setBreaking] = useState({ id: "brk1", text: "BREAKING: PAGASA issues heavy rainfall warning for Metro Manila", url: "#" });
 
-  // NEW: Load more
+  // Load more
   const [visible, setVisible] = useState(12);
 
-  // Live feed: try /api/articles, fallback to samples
+  // Live feed fetch
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -160,15 +160,43 @@ export default function PHNewsUpdate() {
         const res = await fetch("/api/articles");
         if (!res.ok) throw new Error("no api");
         const data = await res.json();
-        if (!cancelled && Array.isArray(data) && data.length) setArticles(data);
+        if (!cancelled && Array.isArray(data) && data.length) {
+          setArticles(data);
+
+          // Auto-BREAKING from PAGASA
+          const brk = data.find(
+            a => a.source === "PAGASA" && /(warning|signal|cyclone|storm|rainfall|flood|severe)/i.test(a.title || "")
+          );
+          if (brk) setBreaking({ id: brk.id, text: `BREAKING: ${brk.title}`.slice(0, 160), url: brk.url });
+
+          // Trending from titles + categories
+          const tags = [];
+          for (const a of data.slice(0, 80)) {
+            if (a.category) tags.push(`#${a.category}`);
+            const words = (a.title || "").split(/\s+/).slice(0, 3);
+            for (const w of words) {
+              const clean = w.replace(/[^A-Za-z0-9]/g, "");
+              if (clean.length >= 4) tags.push(`#${clean.slice(0, 14)}`);
+            }
+          }
+          const uniq = [...new Set(tags)].slice(0, 16);
+          setTrending(uniq.length ? uniq : SAMPLE_TRENDING);
+        }
       } catch (_) {
-        // keep SAMPLE_ARTICLES
+        /* keep samples */
       } finally {
         if (!cancelled) setLoading(false);
       }
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Auto-dismiss breaking after 2 hours
+  useEffect(() => {
+    if (!breaking) return;
+    const t = setTimeout(() => setBreaking(null), 2 * 60 * 60 * 1000);
+    return () => clearTimeout(t);
+  }, [breaking]);
 
   const filtered = useMemo(() => {
     let list = articles;
@@ -197,7 +225,6 @@ export default function PHNewsUpdate() {
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 dark:bg-neutral-950 dark:text-neutral-100">
-      {/* SEO + JSON-LD */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* HEADER */}
@@ -237,7 +264,7 @@ export default function PHNewsUpdate() {
         </div>
       </header>
 
-      {/* BREAKING BANNER */}
+      {/* BREAKING */}
       {breaking && (
         <div className="bg-rose-600 text-white">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 py-2 flex items-center justify-between gap-3">
@@ -247,7 +274,7 @@ export default function PHNewsUpdate() {
         </div>
       )}
 
-      {/* TRENDING TICKER */}
+      {/* TRENDING */}
       <div className="border-b border-neutral-200 dark:border-neutral-800">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <div className="flex items-center gap-2 py-2 text-sm">
@@ -278,13 +305,13 @@ export default function PHNewsUpdate() {
                   : "bg-neutral-50 dark:bg-neutral-900/60 border-neutral-200 dark:border-neutral-800 hover:bg-neutral-100 dark:hover:bg-neutral-800"
               )}
             >
-              {c}
+              {c === "Saved" ? `Saved (${saved.length})` : c}
             </button>
           ))}
         </div>
       </nav>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 pb-16">
         {/* FEATURED */}
         {featured && (
@@ -312,7 +339,6 @@ export default function PHNewsUpdate() {
               </div>
             </motion.article>
 
-            {/* SIDE LIST */}
             <aside className="lg:col-span-2 space-y-4">
               {rest.slice(0,4).map((a) => (
                 <ArticleRow key={a.id} article={a} />
@@ -425,7 +451,6 @@ export default function PHNewsUpdate() {
         </div>
       </footer>
 
-      {/* KEYBOARD NAV HINT (A11y/Easter egg) */}
       <kbd className="fixed bottom-3 right-3 text-[11px] px-2 py-1 rounded bg-neutral-900 text-white/90 dark:bg-white dark:text-neutral-900/90 opacity-70">Tab ⭢ Navigate</kbd>
 
       <style>{`
@@ -439,7 +464,7 @@ export default function PHNewsUpdate() {
 }
 
 // ------------------------------
-// SUB‑COMPONENTS
+// SUB-COMPONENTS
 // ------------------------------
 function ArticleRow({ article }) {
   return (
