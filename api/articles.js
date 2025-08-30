@@ -23,17 +23,76 @@ const SOURCES = [
 // Fallback image used when a feed item doesn't include media
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop";
 
-// Category-based placeholders for items without media
-const CATEGORY_IMAGE = {
-  Top: "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop",
-  Nation: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
-  Business: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1600&auto=format&fit=crop",
-  Sports: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1600&auto=format&fit=crop",
-  Tech: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop",
-  World: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1600&auto=format&fit=crop",
-  Metro: "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?q=80&w=1600&auto=format&fit=crop",
-  Showbiz: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1600&auto=format&fit=crop",
+// Category image pools (variety instead of one repeated fallback)
+const CATEGORY_IMAGES = {
+  Top: [
+    "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1483721310020-03333e577078?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1495020689067-958852a7765e?q=80&w=1600&auto=format&fit=crop",
+  ],
+  Nation: [
+    "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1554050857-c84a8abdb5e2?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?q=80&w=1600&auto=format&fit=crop",
+  ],
+  Business: [
+    "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1600&auto=format&fit=crop",
+  ],
+  Sports: [
+    "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1502877338535-766e1452684a?q=80&w=1600&auto=format&fit=crop",
+  ],
+  Tech: [
+    "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1600&auto=format&fit=crop",
+  ],
+  World: [
+    "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=1600&auto=format&fit=crop",
+  ],
+  Metro: [
+    "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1494526585095-c41746248156?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1486304873000-235643847519?q=80&w=1600&auto=format&fit=crop",
+  ],
+  Showbiz: [
+    "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1499364615650-ec38552f4f34?q=80&w=1600&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=1600&auto=format&fit=crop",
+  ],
 };
+
+
+// Stable hash for seeds (ensures same article → same fallback each time)
+function hash(str = "") {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
+  return Math.abs(h);
+}
+
+// Round-robin index per category (used only when we have no seed)
+const __categoryIndex = {};
+
+function fallbackImage(cat = "Top", seed = "") {
+  const pool = CATEGORY_IMAGES[cat] || CATEGORY_IMAGES.Top;
+  if (!pool || pool.length === 0) return FALLBACK_IMG;
+
+  // Prefer stable choice if we have a seed (guid/id/link/title)
+  if (seed && String(seed).length) {
+    const idx = hash(String(seed)) % pool.length;
+    return pool[idx];
+  }
+  // Otherwise rotate through the pool so cards still vary
+  __categoryIndex[cat] = ((__categoryIndex[cat] || 0) + 1) % pool.length;
+  return pool[__categoryIndex[cat]];
+}
+
+
 
 function firstFromSrcset(srcset = "") {
   const first = String(srcset).split(",")[0];
