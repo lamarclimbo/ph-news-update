@@ -35,12 +35,31 @@ const CATEGORY_IMAGE = {
   Showbiz: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1600&auto=format&fit=crop",
 };
 
+function firstFromSrcset(srcset = "") {
+  const first = String(srcset).split(",")[0];
+  const url = first.trim().split(" ")[0];
+  return url || null;
+}
+
 function pickImage(item = {}) {
-  const media = item.enclosure?.url || item["media:content"]?.url || item["media:thumbnail"]?.url;
+  const media = item.enclosure?.url
+    || item["media:content"]?.url
+    || (Array.isArray(item["media:content"]) && item["media:content"][0]?.url)
+    || item["media:thumbnail"]?.url
+    || item["itunes:image"]?.href
+    || item.image;
   if (media) return media;
-  const html = item.content || item["content:encoded"] || "";
-  const m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return m?.[1] || null; // we fallback later per-category
+
+  const html = item["content:encoded"] || item.content || "";
+  if (html) {
+    const dataSrc = html.match(/<img[^>]+data-src=["']([^"']+)["']/i);
+    if (dataSrc?.[1]) return dataSrc[1];
+    const srcset = html.match(/<img[^>]+srcset=["']([^"']+)["']/i);
+    if (srcset?.[1]) return firstFromSrcset(srcset[1]);
+    const src = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (src?.[1]) return src[1];
+  }
+  return null;
 }
 
 function strip(html = "") {
@@ -74,7 +93,7 @@ export default async function handler(req, res) {
           id: it.guid || it.id || it.link,
           title: (it.title || "").trim(),
           excerpt: strip(it.contentSnippet || it.summary || it["content:encodedSnippet"] || it.content || ""),
-          image: (pickImage(it) || CATEGORY_IMAGE[cat] || FALLBACK_IMG),
+          image: (pickImage(it) || fallbackImage(cat, it.guid || it.id || it.link || it.title)),
           category: cat,
           author: it.creator || src.label || "News Desk",
           publishedAt: (() => { const rawDate = it.isoDate || it.pubDate || Date.now(); const ts = new Date(rawDate).getTime(); const safeTs = Number.isFinite(ts) ? Math.min(ts, Date.now()) : Date.now(); return new Date(safeTs).toISOString(); })(),
