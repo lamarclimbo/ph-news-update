@@ -23,7 +23,7 @@ const SOURCES = [
 // Fallback image used when a feed item doesn't include media
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop";
 
-// Category image pools (variety instead of one repeated fallback)
+// Category image pools (variety instead of a single repeated photo)
 const CATEGORY_IMAGES = {
   Top: [
     "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop",
@@ -67,8 +67,7 @@ const CATEGORY_IMAGES = {
   ],
 };
 
-
-// Stable hash for seeds (ensures same article → same fallback each time)
+// Stable hash for seeds (same article → same fallback each run)
 function hash(str = "") {
   let h = 0;
   for (let i = 0; i < str.length; i++) { h = (h << 5) - h + str.charCodeAt(i); h |= 0; }
@@ -81,18 +80,25 @@ const __categoryIndex = {};
 function fallbackImage(cat = "Top", seed = "") {
   const pool = CATEGORY_IMAGES[cat] || CATEGORY_IMAGES.Top;
   if (!pool || pool.length === 0) return FALLBACK_IMG;
-
-  // Prefer stable choice if we have a seed (guid/id/link/title)
   if (seed && String(seed).length) {
     const idx = hash(String(seed)) % pool.length;
     return pool[idx];
   }
-  // Otherwise rotate through the pool so cards still vary
   __categoryIndex[cat] = ((__categoryIndex[cat] || 0) + 1) % pool.length;
   return pool[__categoryIndex[cat]];
 }
 
-
+// Category-based placeholders for items without media
+const CATEGORY_IMAGE = {
+  Top: "https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1600&auto=format&fit=crop",
+  Nation: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+  Business: "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1600&auto=format&fit=crop",
+  Sports: "https://images.unsplash.com/photo-1517649763962-0c623066013b?q=80&w=1600&auto=format&fit=crop",
+  Tech: "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop",
+  World: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?q=80&w=1600&auto=format&fit=crop",
+  Metro: "https://images.unsplash.com/photo-1508057198894-247b23fe5ade?q=80&w=1600&auto=format&fit=crop",
+  Showbiz: "https://images.unsplash.com/photo-1518895949257-7621c3c786d7?q=80&w=1600&auto=format&fit=crop",
+};
 
 function firstFromSrcset(srcset = "") {
   const first = String(srcset).split(",")[0];
