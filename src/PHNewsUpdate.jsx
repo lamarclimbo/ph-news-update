@@ -18,13 +18,15 @@ const BRAND = {
   tagline: "Real stories. Real time.",
   domain: "https://ph-news-update-now.vercel.app",
   logoText: // ...inside your <header> or top nav brand link
-<a href="/" className="flex items-center gap-2">
+<a href="/" className="flex items-center gap-2 min-w-0">
   <img
-    src="/logo.jpg"            // <-- your file in /public
+    src="/logo.png"            // your file in /public
     alt="PH News Update"
-    className="h-10 w-auto"     // tweak height to fit your navbar
+    className="h-8 w-8 object-contain rounded-sm shrink-0"
   />
-  <span className="text-lg font-semibold tracking-tight">PH News Update</span>
+  <span className="text-xl font-semibold leading-none truncate">
+    PH News Update
+  </span>
 </a>,
   primaryCategories: ["Top", "Nation", "Metro", "Business", "World", "Sports", "Tech", "Showbiz", "Saved"],
 };
@@ -332,7 +334,7 @@ export default function PHNewsUpdate() {
             >
               <div className="relative aspect-[16/9] sm:aspect-[21/9]">
                 <img src={featured.image} alt="Featured story" className="absolute inset-0 h-full w-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-800/60 via-brand-900/20 to-transparent" />
                 <div className="absolute bottom-0 p-4 sm:p-6 text-white">
                   <span className="inline-flex items-center gap-1 text-xs bg-white/15 px-2 py-1 rounded-full backdrop-blur"><TrendingUp className="h-3 w-3"/> Featured</span>
                   <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold" itemProp="headline">{featured.title}</h1>
