@@ -245,10 +245,17 @@ export default function PHNewsUpdate() {
               <button className="p-2 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-800" aria-label="Open menu">
                 <Menu className="h-5 w-5" />
               </button>
-              <a href="#" className="flex items-baseline gap-2 font-extrabold tracking-tight text-xl">
-                <span className="inline-grid place-items-center h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-sky-400 text-white">{BRAND.logoText}</span>
-                <span>{BRAND.name}</span>
-              </a>
+              <a href="/" className="flex items-center gap-2 min-w-0">
+<img
+src="/logo.jpg" // or /logo.svg in /public
+alt="PH News Update"
+className="h-8 w-8 object-contain rounded-sm shrink-0"
+/>
+<span className="text-xl font-semibold leading-none truncate">
+PH News Update
+</span>
+</a>
+*/
               <span className="hidden md:inline-block text-sm text-neutral-500 dark:text-neutral-400">{BRAND.tagline}</span>
             </div>
             <div className="flex items-center gap-2">
